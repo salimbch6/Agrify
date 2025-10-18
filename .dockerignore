@@ -1,0 +1,9 @@
+venv/
+venv310/
+__pycache__/
+*.ipynb
+*.jpg
+*.png
+.git
+.gitignore
+notebooks/

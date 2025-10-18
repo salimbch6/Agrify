@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>🌾 Crop Production Predictor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      color: #fff;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(20px);
+      padding: 40px;
+      border-radius: 20px;
+      width: 420px;
+      box-shadow: 0px 8px 30px rgba(0,0,0,0.3);
+      text-align: center;
+      animation: fadeIn 0.6s ease-in-out;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      font-weight: 600;
+      color: #00ffcc;
+    }
+
+    label {
+      display: block;
+      text-align: left;
+      margin: 12px 0 5px;
+      font-weight: 500;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      font-size: 15px;
+      transition: 0.3s;
+    }
+
+    input::placeholder {
+      color: #cfd8dc;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      background: rgba(255, 255, 255, 0.2);
+      box-shadow: 0 0 10px #00ffcc;
+    }
+
+    select {
+      appearance: none;
+      cursor: pointer;
+    }
+
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #00ffcc, #00b894);
+      color: #0f2027;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(0, 255, 204, 0.4);
+    }
+
+    .spinner {
+      margin: 20px auto;
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(255, 255, 255, 0.2);
+      border-top: 5px solid #00ffcc;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      display: none;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #00b894;
+      color: #fff;
+      padding: 14px 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      opacity: 0;
+      transform: translateY(20px);
+      transition: 0.4s;
+      z-index: 999;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>🌾 Crop Production Predictor</h2>
+
+    <form id="prediction-form">
+      <label>State Name:</label>
+      <select name="State_Name" required>
+        <option value="">-- Select State --</option>
+        <option value="Andhra Pradesh">Andhra Pradesh</option>
+        <option value="Bihar">Bihar</option>
+        <option value="Maharashtra">Maharashtra</option>
+        <option value="Punjab">Punjab</option>
+        <option value="Tamil Nadu">Tamil Nadu</option>
+      </select>
+
+      <label>District Name:</label>
+      <input type="text" name="District_Name" placeholder="e.g., Lucknow" required>
+
+      <label>Crop Year:</label>
+      <select name="Crop_Year" required>
+        <option value="">-- Select Year --</option>
+        <script>
+          const currentYear = new Date().getFullYear();
+          for(let y = currentYear; y >= 2000; y--) {
+            document.write(`<option value="${y}">${y}</option>`);
+          }
+        </script>
+      </select>
+
+      <label>Season:</label>
+      <select name="Season" required>
+        <option value="">-- Select Season --</option>
+        <option value="Kharif">Kharif</option>
+        <option value="Rabi">Rabi</option>
+        <option value="Summer">Summer</option>
+        <option value="Winter">Winter</option>
+        <option value="Whole Year">Whole Year</option>
+      </select>
+
+      <label>Crop:</label>
+      <select name="Crop" required>
+        <option value="">-- Select Crop --</option>
+        <option value="Rice">Rice</option>
+        <option value="Wheat">Wheat</option>
+        <option value="Maize">Maize</option>
+        <option value="Sugarcane">Sugarcane</option>
+        <option value="Cotton">Cotton</option>
+      </select>
+
+      <label>Area (in hectares):</label>
+      <input type="number" name="Area" step="0.01" placeholder="e.g., 1200" required>
+
+      <button type="submit">🔮 Predict</button>
+    </form>
+
+    <div class="spinner" id="spinner"></div>
+    <div id="result" style="margin-top: 20px; font-size: 18px;"></div>
+
+    {% if prediction is defined %}
+      <div id="prediction-value" style="display:none;">{{ prediction }}</div>
+    {% endif %}
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const form = document.getElementById("prediction-form");
+    const spinner = document.getElementById("spinner");
+    const result = document.getElementById("result");
+    const toast = document.getElementById("toast");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      spinner.style.display = "block";
+      result.innerHTML = "";
+
+      const formData = new FormData(form);
+      const response = await fetch("/predict", {
+        method: "POST",
+        body: formData
+      });
+
+      spinner.style.display = "none";
+      const html = await response.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, "text/html");
+      const prediction = doc.querySelector("#prediction-value")?.textContent || "⚠️ Error";
+
+      if (prediction === "⚠️ Error") {
+        result.innerHTML = `<span style="color:#ff6b6b;">⚠️ Prediction failed. Please check inputs.</span>`;
+      } else {
+        result.innerHTML = `<strong>📊 Predicted Production:</strong> ${prediction} tons`;
+      }
+
+      showToast(`✅ Prediction complete: ${prediction} tons`);
+    });
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 4000);
+    }
+  </script>
+</body>
+</html>

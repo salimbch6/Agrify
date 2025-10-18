@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>📊 Predictions Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+ <style>
+  :root {
+    --green: #2e7d32;
+    --ink: #1b2b21;
+    --muted: #5e6b63;
+    --card: #ffffff;
+    --bg: #f4f7f5;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+  }
+
+  /* ✅ WIDER WRAPPER */
+  .wrap {
+    max-width: 2000px; /* increased from 1100px */
+    margin: 40px auto;
+    padding: 0 32px; /* more breathing room */
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  h1 {
+    font-size: 28px;
+    margin: 0;
+    color: var(--green);
+  }
+
+  .hello {
+    color: var(--muted);
+    font-size: 16px;
+  }
+
+  /* ✅ GRID MORE BALANCED */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  @media (min-width: 1200px) {
+    .grid {
+      grid-template-columns: 2fr 1fr; /* give table more space */
+    }
+  }
+
+  /* ✅ BIGGER CARDS */
+  .card {
+    background: var(--card);
+    border-radius: 16px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.06);
+    padding: 24px;
+  }
+
+  .card h3 {
+    margin: 8px 0 18px;
+    font-size: 20px;
+    color: #2f4a3a;
+  }
+
+  /* ✅ TABLE FONT SIZE & SPACING */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 16px;
+  }
+
+  th,
+  td {
+    padding: 14px 12px;
+    border-bottom: 1px solid #edf1ed;
+    text-align: left;
+  }
+
+  th {
+    color: #3a5747;
+    font-weight: 700;
+    background: #f7faf7;
+  }
+
+  tr:hover td {
+    background: #fbfdfb;
+  }
+
+  /* ✅ BUTTONS */
+  .topbar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .btn {
+    padding: 10px 16px;
+    border: 1px solid #dfe7e1;
+    background: #fff;
+    border-radius: 10px;
+    cursor: pointer;
+    text-decoration: none;
+    color: #2e7d32;
+    font-weight: 600;
+    font-size: 15px;
+    transition: background 0.3s;
+  }
+
+  .btn:hover {
+    background: #f3f8f4;
+  }
+
+  /* ✅ CHARTS */
+  .charts {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  @media (min-width: 1200px) {
+    .charts {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  canvas {
+    width: 100%;
+    height: 400px; /* bigger chart */
+  }
+</style>
+
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>📊 Predictions Dashboard</h1>
+        <div class="hello">Signed in as: <strong>{{ current_user }}</strong></div>
+      </div>
+      <div class="topbar">
+        <a class="btn" href="/predict">➕ New Prediction</a>
+        <a class="btn" href="/logout">Logout</a>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h3>Recent Predictions (last 100)</h3>
+        <div style="overflow:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>When (UTC)</th>
+                <th>User</th>
+                <th>State</th>
+                <th>District</th>
+                <th>Year</th>
+                <th>Season</th>
+                <th>Crop</th>
+                <th>Area</th>
+                <th>Prediction</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in rows %}
+              <tr>
+                <td>{{ r['created_at'] }}</td>
+                <td>{{ r['user'] }}</td>
+                <td>{{ r['state_name'] }}</td>
+                <td>{{ r['district_name'] }}</td>
+                <td>{{ r['crop_year'] }}</td>
+                <td>{{ r['season'] }}</td>
+                <td>{{ r['crop'] }}</td>
+                <td>{{ "%.2f"|format(r['area']) }}</td>
+                <td><strong>{{ "%.2f"|format(r['prediction']) }}</strong></td>
+              </tr>
+              {% else %}
+              <tr><td colspan="9" style="color:#7b8a82">No predictions yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <aside class="charts">
+        <section class="card">
+          <h3>Top 10 Crops by Usage</h3>
+          <canvas id="barCrops"></canvas>
+        </section>
+        <section class="card">
+          <h3>Predictions by Season</h3>
+          <canvas id="pieSeason"></canvas>
+        </section>
+        <section class="card" style="grid-column:1/-1">
+          <h3>Predictions Over Time (last 30 days)</h3>
+          <canvas id="lineTime"></canvas>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script>
+    // Data from Flask
+    const topCropLabels = {{ top_crop_labels | tojson | safe }};
+const topCropValues = {{ top_crop_values | tojson | safe }};
+const seasonLabels  = {{ season_labels  | tojson | safe }};
+const seasonValues  = {{ season_values  | tojson | safe }};
+const dayLabels     = {{ day_labels     | tojson | safe }};
+const dayValues     = {{ day_values     | tojson | safe }};
+
+
+    // Bar: Top crops
+    new Chart(document.getElementById('barCrops'), {
+      type: 'bar',
+      data: {
+        labels: topCropLabels,
+        datasets: [{ label: 'Predictions', data: topCropValues }]
+      },
+      options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+
+    // Pie: Seasons
+    new Chart(document.getElementById('pieSeason'), {
+      type: 'pie',
+      data: {
+        labels: seasonLabels,
+        datasets: [{ data: seasonValues }]
+      },
+      options: { responsive: true }
+    });
+
+    // Line: By day
+    new Chart(document.getElementById('lineTime'), {
+      type: 'line',
+      data: {
+        labels: dayLabels,
+        datasets: [{ label: 'Predictions', data: dayValues, tension: .3 }]
+      },
+      options: { responsive: true }
+    });
+  </script>
+</body>
+</html>

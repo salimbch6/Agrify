@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+   <title>🌾 Crop Predictor – Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: "Inter", sans-serif;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      color: #fff;
+    }
+
+    .login-container {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(20px);
+      padding: 2.5rem;
+      border-radius: 20px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+      width: 360px;
+      text-align: center;
+      animation: fadeIn 0.7s ease-in-out;
+    }
+
+    h2 {
+      margin-bottom: 1.5rem;
+      color: #00ffcc;
+      font-weight: 700;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 1rem;
+      border: none;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+      transition: 0.3s;
+    }
+
+    input:focus {
+      background: rgba(255, 255, 255, 0.2);
+      box-shadow: 0 0 10px #00ffcc;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #00ffcc, #00b894);
+      color: #0f2027;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 16px;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(0, 255, 204, 0.4);
+    }
+
+    .face-btn {
+      background: #1b4332;
+      color: #fff;
+      margin-top: 0.7rem;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #00b894;
+      color: #fff;
+      padding: 14px 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      opacity: 0;
+      transform: translateY(20px);
+      transition: 0.4s;
+      z-index: 999;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* 📸 Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .modal-content {
+      background: #fff;
+      color: #000;
+      padding: 2rem;
+      border-radius: 20px;
+      text-align: center;
+      width: 420px;
+      position: relative;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    #cameraPreview {
+      width: 100%;
+      height: 280px;
+      border-radius: 12px;
+      background: #000;
+      margin-bottom: 1rem;
+      object-fit: cover;
+    }
+
+    .scanning {
+      font-size: 1.1rem;
+      color: #40916c;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.4; }
+      50% { opacity: 1; }
+      100% { opacity: 0.4; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h2>🌿 Crop Prediction Portal</h2>
+    <form action="/login" method="POST">
+      <input type="text" name="username" placeholder="Username" required />
+      <input type="password" name="password" placeholder="Password" required />
+      <button type="submit">Login</button>
+    </form>
+    <p style="margin: 1rem 0; color: #666;">— OR —</p>
+    <button class="face-btn" type="button" onclick="openFaceModal()">Login with Face ID</button>
+  </div>
+
+  <!-- 📸 Modal -->
+  <div class="modal" id="faceModal">
+    <div class="modal-content">
+      <video id="cameraPreview" autoplay></video>
+      <div class="scanning" id="scanStatus">📸 Scanning your face...</div>
+      <div class="success" id="successMsg" style="display: none;">✅ Face recognized! Redirecting...</div>
+      <div class="error" id="errorMsg" style="display: none;">❌ Face not recognized. Try again.</div>
+    </div>
+  </div>
+
+  <script>
+    const modal = document.getElementById("faceModal");
+    const video = document.getElementById("cameraPreview");
+    const scanStatus = document.getElementById("scanStatus");
+    const successMsg = document.getElementById("successMsg");
+    const errorMsg = document.getElementById("errorMsg");
+
+    async function openFaceModal() {
+      modal.style.display = "flex";
+      scanStatus.style.display = "block";
+      successMsg.style.display = "none";
+      errorMsg.style.display = "none";
+
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      video.srcObject = stream;
+
+      setTimeout(captureAndVerifyFace, 3000); // simulate scan delay
+    }
+
+    async function captureAndVerifyFace() {
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const context = canvas.getContext("2d");
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg"));
+
+      const formData = new FormData();
+      formData.append("frame", blob);
+
+      try {
+        const res = await fetch("/face_login", { method: "POST", body: formData });
+        const data = await res.json();
+
+        scanStatus.style.display = "none";
+
+        if (data.status === "success") {
+          successMsg.style.display = "block";
+          setTimeout(() => {
+            window.location.href = "/predict";
+          }, 2000);
+        } else {
+          errorMsg.style.display = "block";
+        }
+      } catch (e) {
+        errorMsg.style.display = "block";
+        console.error("Face recognition error:", e);
+      }
+    }
+  </script>
+</body>
+</html>

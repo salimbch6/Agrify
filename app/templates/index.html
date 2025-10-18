@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Face Login | Crop Predictor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: linear-gradient(to bottom, #78c7c7, #d4f3ef);
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    video {
+      border: 2px solid #333;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 18px;
+      border: none;
+      background: #1a73e8;
+      color: #fff;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0f5dc0;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔐 Login with Face Recognition</h1>
+
+  <video id="video" width="400" height="300" autoplay></video>
+  <canvas id="canvas" width="400" height="300" style="display:none;"></canvas>
+
+  <button onclick="capture()">Login</button>
+
+  <form id="login-form" method="POST" action="/login" enctype="multipart/form-data" style="display:none;">
+    <input type="hidden" name="image" id="image-data">
+  </form>
+
+  <script>
+    const video = document.getElementById('video');
+
+    // ✅ Access the webcam
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        video.srcObject = stream;
+      });
+
+    function capture() {
+      const canvas = document.getElementById('canvas');
+      const context = canvas.getContext('2d');
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/png');
+      document.getElementById('image-data').value = dataUrl;
+      document.getElementById('login-form').submit();
+    }
+  </script>
+</body>
+</html>
